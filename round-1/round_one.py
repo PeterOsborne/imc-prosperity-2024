@@ -1,6 +1,9 @@
-from datamodel import OrderDepth, UserId, TradingState, Order
 from typing import List
 import string
+
+import sys
+sys.path.append('../test')
+from datamodel import OrderDepth, UserId, TradingState, Order
 
 class Trader:
     def run(self, state: TradingState):
@@ -33,27 +36,27 @@ class Trader:
                         current_amethysts_position += best_bid_amount
                 
                 result[product] = orders
-            if product == "STARFRUIT":
-                order_depth: OrderDepth = state.order_depths[product]
-                orders: List[Order] = []
-                if state.timestamp > 5:
-                    last_5_prices = list(order_depth.sell_orders.items())[:5]
-                    past_prices = [float(price) for price, _ in last_5_prices]
-                    average_price = sum(past_prices) / len(past_prices)
-                    # print("The average price is ", average_price)
-                    best_bid, best_bid_amount = list(order_depth.buy_orders.items())[0]
-                    best_ask, best_ask_amount = list(order_depth.sell_orders.items())[0]
-                    if best_bid < average_price - 2:
-                        if current_star_fruit_position + best_bid_amount <= position_limit:
-                            print("BUYING STARFRUIT")
-                            orders.append(Order(product, best_bid, -best_bid_amount))
-                            current_star_fruit_position += best_bid_amount
-                    if best_ask > average_price + 2:
-                        if current_star_fruit_position - best_ask_amount >= -position_limit:
-                            print("SELLING STARFRUIT")
-                            orders.append(Order(product, best_ask, -best_ask_amount))
-                            current_star_fruit_position -= best_ask_amount
-                result[product] = orders
+            # if product == "STARFRUIT":
+            #     order_depth: OrderDepth = state.order_depths[product]
+            #     orders: List[Order] = []
+            #     if state.timestamp > 5:
+            #         last_5_prices = list(order_depth.sell_orders.items())[:5]
+            #         past_prices = [float(price) for price, _ in last_5_prices]
+            #         average_price = sum(past_prices) / len(past_prices)
+            #         # print("The average price is ", average_price)
+            #         best_bid, best_bid_amount = list(order_depth.buy_orders.items())[0]
+            #         best_ask, best_ask_amount = list(order_depth.sell_orders.items())[0]
+            #         if best_bid < average_price - 2:
+            #             if current_star_fruit_position + best_bid_amount <= position_limit:
+            #                 # print("BUYING STARFRUIT")
+            #                 orders.append(Order(product, best_bid, -best_bid_amount))
+            #                 current_star_fruit_position += best_bid_amount
+            #         if best_ask > average_price + 2:
+            #             if current_star_fruit_position - best_ask_amount >= -position_limit:
+            #                 # print("SELLING STARFRUIT")
+            #                 orders.append(Order(product, best_ask, -best_ask_amount))
+            #                 current_star_fruit_position -= best_ask_amount
+            #     result[product] = orders
                             
     
         conversions = 1
@@ -63,9 +66,4 @@ class Trader:
     
     
 
-def main():
-    print("we begin")
 
-
-if '__name__' == __main__:
-    main()
