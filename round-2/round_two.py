@@ -38,7 +38,8 @@ class Trader:
                         current_orchid_position += sell_orchid(
                             order_depth, current_orchid_position, position_limit, product, orders)
 
-                    if conversion_observation.sunlight > 100:  # change this to 4350 upon submission
+                    # change this to 4350 upon submission (although wghen it is 100 it makes a ton of money)
+                    if conversion_observation.sunlight > 100:
                         print("SELLEEEEE")
                         current_orchid_position += sell_orchid(
                             order_depth, current_orchid_position, position_limit, product, orders)
