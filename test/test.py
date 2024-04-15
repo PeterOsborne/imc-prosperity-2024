@@ -14,7 +14,7 @@ def main(products, position_limit, traderData):
     for product in products:
         position[product] = 0
         
-    round_dir = "round-" + "1"
+    round_dir = "round-" + input("which round? ")
     file_path = os.path.join('..', round_dir, 'data')
     price_files = [file for file in os.listdir(file_path) if file.startswith('prices')]
     price_files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
