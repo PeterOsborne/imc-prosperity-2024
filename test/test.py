@@ -1,5 +1,5 @@
-from datamodel import Listing, OrderDepth, Trade, TradingState
 import os
+from datamodel import Listing, OrderDepth, Trade, TradingState
 import pandas as pd
 import math
 
@@ -37,13 +37,11 @@ def main(products, position_limit, traderData):
             trader_instance, trader_state, final_price_am, final_price_st = create_round(data, dataTrades, position, products, timestamp, conversions, traderData)
             result, conversions, traderData = Trader.run(trader_instance, trader_state)
             for product, orders in result.items():
+                print(orders)
                 for order in orders:
-                    # print(f'Before: seashells={seashells}, position={position[order.symbol]}')
-                    # print(f'Incoming: price={order.price},  quantity={order.quantity}')
                     seashells += order.price*(-1 * order.quantity)
                     position[order.symbol] += order.quantity
-                    # print(f'After: seashells={seashells}, position={position[order.symbol]}')
-        print(position["AMETHYSTS"])
+        print()
         print(seashells + position["AMETHYSTS"] * final_price_am + position["STARFRUIT"] * final_price_st)
         performance.append(seashells)
     
