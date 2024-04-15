@@ -8,20 +8,22 @@ sys.path.append('../round-1')
 from round_one import Trader
 
 
-def main(products, position_limit):
+def main(products, position_limit, traderData):
     position = {}
     performance = []
     for product in products:
         position[product] = 0
         
-    round_dir = "round-" + input("Which round? ")
+    round_dir = "round-" + "1"
     file_path = os.path.join('..', round_dir, 'data')
     price_files = [file for file in os.listdir(file_path) if file.startswith('prices')]
     price_files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
     trades_files = [file for file in os.listdir(file_path) if file.startswith('trades')]
     trades_files.sort(key=lambda x: int(x.split('_')[-2].split('.')[0]))
     seashells = 0
-    
+    final_price_am = 0
+    final_price_st = 0
+
     
     
     for price_file, trades_file in zip(price_files, trades_files):
@@ -31,21 +33,18 @@ def main(products, position_limit):
         dataTrades = pd.read_csv(os.path.join(file_path, trades_file), encoding='cp1252', delimiter=';')
         timestamps = data['timestamp'].unique()
         conversions = {}
-        traderData = ""
         for timestamp in timestamps:
-            trader_instance, trader_state = create_round(data, dataTrades, position, products, timestamp, conversions, traderData)
+            trader_instance, trader_state, final_price_am, final_price_st = create_round(data, dataTrades, position, products, timestamp, conversions, traderData)
             result, conversions, traderData = Trader.run(trader_instance, trader_state)
-            if timestamp == 100:
-                print(result)
             for product, orders in result.items():
                 for order in orders:
-                    if abs(position[order.symbol] + order.quantity) > position_limit:
-                        print("BUST")
-                    else:
-                        print(order.price, order.quantity)
-                        seashells += order.price*(-1 * order.quantity)
-                        position[order.symbol] += order.quantity
-        print(seashells)
+                    # print(f'Before: seashells={seashells}, position={position[order.symbol]}')
+                    # print(f'Incoming: price={order.price},  quantity={order.quantity}')
+                    seashells += order.price*(-1 * order.quantity)
+                    position[order.symbol] += order.quantity
+                    # print(f'After: seashells={seashells}, position={position[order.symbol]}')
+        print(position["AMETHYSTS"])
+        print(seashells + position["AMETHYSTS"] * final_price_am + position["STARFRUIT"] * final_price_st)
         performance.append(seashells)
     
     for i in range(len(performance)):
@@ -53,24 +52,26 @@ def main(products, position_limit):
 
     for i in range(len(products)):
         print(f'Position of {products[i]} is: {position[products[i]]}')
+    return seashells
 
     
 def create_round(data, dataTrades, position, products, timestamp, conversions, traderData):
     new_data = data[data['timestamp'] == timestamp]
     new_trades = dataTrades[dataTrades['timestamp'] == timestamp]
     product = new_trades['symbol']
-    if timestamp == 100:
-        print(" ")
-        print("===========================================")
-        print(new_trades)
-        print("===========================================")
+    # if timestamp == 100:
+        # print(" ")
+        # print("===========================================")
+        # print(new_trades)
+        # print("===========================================")
     listings = {}
     order_depths = {}
     own_trades = {}
     market_trades = {}
     for product in products:
         market_trades[product] = []
-    
+    final_price_am = 0
+    final_price_st = 0
     
     for i in range(len(new_trades)):
         trade = new_trades.iloc[i]
@@ -83,7 +84,10 @@ def create_round(data, dataTrades, position, products, timestamp, conversions, t
             'seller': trade['seller'],
             'timestamp': trade['timestamp']
         })
-        
+        if trade['symbol'] == 'AMETHYSTS':
+            final_price_am = trade['price']
+        elif trade['symbol'] == 'STARFISH':
+            final_price_st = trade['price']
     for i in range(len(new_data)):
         listing = new_data.iloc[i]
         product = listing['product']
@@ -105,9 +109,9 @@ def create_round(data, dataTrades, position, products, timestamp, conversions, t
                 volume_column = 'ask_volume_' + column_name.split('_')[-1]
                 if not math.isnan(column_value) and not math.isnan(listing[volume_column]):
                     asks[int(column_value)] = -1 * int(listing[volume_column])
-        if timestamp == 100:
-            print("bids", bids)
-            print("asks", asks)
+        # if timestamp == 100:
+            # print("bids", bids)
+            # print("asks", asks)
         # Create the OrderDepth object and assign buy_orders and sell_orders
         order_depths[product] = OrderDepth(
             buy_orders=bids,
@@ -124,7 +128,7 @@ def create_round(data, dataTrades, position, products, timestamp, conversions, t
             conversions
         )
     
-    return Trader(), trader_state
+    return Trader(), trader_state, final_price_am, final_price_st
 
 
 
@@ -211,4 +215,5 @@ def create_round(data, dataTrades, position, products, timestamp, conversions, t
 # 	observations
 # )
 
-main(["AMETHYSTS", "STARFRUIT"], 20)
+
+main(["AMETHYSTS", "STARFRUIT"], 20, "hey")
