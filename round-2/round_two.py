@@ -3,6 +3,7 @@ from typing import List
 import string
 import numpy as np
 
+
 class Trader:
     POSITION_LIMIT = {'AMETHYSTS': 20, 'STARFRUIT': 20}
     
@@ -128,13 +129,12 @@ class Trader:
         return orders, current_starfruit_position
     
     
-    def compute_orchard_orders(self, state, product, current_orchid_position):
+    def compute_orchid_orders(self, state, product, current_orchid_position):
         position_limit = 100
         order_depth: OrderDepth = state.order_depths[product]
         orders: List[Order] = []
 
-        conversion_observation = state.observations.conversionObservations.get(
-            product)
+        conversion_observation = state.observations.conversionObservations.get(product, 0)
         print(conversion_observation.sunlight)
         print(conversion_observation.humidity)
         print(conversion_observation.importTariff)
@@ -151,10 +151,11 @@ class Trader:
                 print("SELL")
                 current_orchid_position += sell_orchid(order_depth, current_orchid_position, position_limit, product, orders)
 
-            if conversion_observation.sunlight > 100:  # change this to 4350 upon submission
+            if conversion_observation.sunlight > 4350:  # change this to 4350 upon submission
                 print("SELLEEEEE")
                 current_orchid_position += sell_orchid(order_depth, current_orchid_position, position_limit, product, orders)
         return orders, current_orchid_position
+
 
 
     def buy_orchid(order_depth, current_orchid_position, position_limit, product, orders):
@@ -188,7 +189,7 @@ class Trader:
         result = {}
         current_amethysts_position = state.position.get('AMETHYSTS', 0)
         current_starfruit_position = state.position.get('STARFRUIT', 0)
-        current_orchard_position = state.position.get('STARFRUIT', 0)
+        current_orchid_position = state.position.get('ORCHIDS', 0)
         orders: list[Order] = []
         acc_bid = {'AMETHYSTS' : 10000, 'STARFRUIT' : 5000} # we want to buy at slightly below
         acc_ask = {'AMETHYSTS' : 10000, 'STARFRUIT' : 5000} # we want to sell at slightly above
@@ -203,9 +204,11 @@ class Trader:
                 result[product] = orders
             
             if product == "ORCHIDS":
-                orders, current_orchid_position = self.compute_orchard_orders(state, product, current_orchid_position)
+                orders, current_orchid_position = self.compute_orchid_orders(state, product, current_orchid_position)
                 result[product] = orders
 
         conversions = 1
         traderData = state.traderData
         return result, conversions, traderData
+    
+    
