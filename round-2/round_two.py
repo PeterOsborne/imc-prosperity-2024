@@ -139,9 +139,9 @@ class Trader:
 
         
         if state.timestamp % 10000 == 0:
-            print(conversion_observation.bidPrice + ' | ')
-            print(plain_value_observation + ' | ')
-            print(amethysts.bidPrice + ' | ')
+            print(str(conversion_observation.bidPrice) + ' | ')
+            print(str(plain_value_observation) + ' | ')
+            print(str(amethysts.bidPrice) + ' | ')
             print("===============================")
 
 
