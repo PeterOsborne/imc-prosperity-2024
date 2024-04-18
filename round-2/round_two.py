@@ -130,22 +130,56 @@ class Trader:
     
     def compute_orchid_orders(self, state, product, current_orchid_position):
         position_limit = 100
+        position = state.position.get("ORCHIDS", 0)
+        orders: list[Order] = []
         order_depth: OrderDepth = state.order_depths[product]
-        orders: List[Order] = []
+        
+        osell = self.list_to_dict(sorted(order_depth.sell_orders.items()))
+        obuy = self.list_to_dict(sorted(order_depth.buy_orders.items(), reverse=True))
+        
+        first_osell = list(osell.items())[0]
+        last_osell = list(osell.items())[1]
+        first_obuy = list(obuy.items())[0]
+        last_obuy = list(obuy.items())[1]
+        
+        first_price_osell, first_position_osell = first_osell
+        last_price_osell, last_position_osell = last_osell
+        first_price_obuy, first_position_obuy = first_obuy
+        last_price_obuy, last_position_obuy = last_obuy
+        
+        vol = min(-1 * first_position_osell, -1 * last_position_osell)
+        orders.append(Order(product, first_price_osell, 3))
+        orders.append(Order(product, first_price_osell + 15, -3))
+        print(first_price_osell, last_price_osell)
+        
+        print(f'Bought orchids for {first_price_osell} and sold for {first_price_osell + 3}')
+        
+        vol = max(-1 * first_position_obuy, -1 * last_position_obuy)
+        print(first_price_obuy, last_price_obuy)
+        orders.append(Order(product, first_price_obuy, -3))
+        orders.append(Order(product, first_price_obuy - 15, 3))
+        
+        print(f'Sold orchids for {first_price_obuy} and bought for {first_price_obuy - 3}')
+
+
 
         conversion_observation = state.observations.conversionObservations.get(product, 0)
         plain_value_observation = state.observations.plainValueObservations.get(product, 0)
-        amethysts = state.observations.plainValueObservations.get("AMETHYSTS", 0)
-
+        print(conversion_observation.bidPrice, conversion_observation.askPrice)
+        print(plain_value_observation)
+        conversion_bid = conversion_observation.bidPrice
+        conversion_ask = conversion_observation.askPrice
+        conversion_import_tariff = conversion_observation.importTariff
+        conversion_export_tariff = conversion_observation.exportTariff
+        conversions = 0
         
-        if state.timestamp % 10000 == 0:
-            print(str(conversion_observation.bidPrice) + ' | ')
-            print(str(plain_value_observation) + ' | ')
-            print(str(amethysts.bidPrice) + ' | ')
-            print("===============================")
-
-
+        if state.timestamp == 99900:
+            print(f'my position is {position}, converting {-1 * position}')
+            return orders, -1 * position
         
+        print(f'CONVERTING {conversions} ORCHIDS')
+        return orders, conversions
+
     def run(self, state: TradingState):
         result = {}
         current_amethysts_position = state.position.get('AMETHYSTS', 0)
@@ -154,20 +188,20 @@ class Trader:
         orders: list[Order] = []
         acc_bid = {'AMETHYSTS' : 10000, 'STARFRUIT' : 5000} # we want to buy at slightly below
         acc_ask = {'AMETHYSTS' : 10000, 'STARFRUIT' : 5000} # we want to sell at slightly above
+        conversions = 0
         
         for product in state.order_depths:
-            if product == "AMETHYSTS":
-                orders, current_amethysts_position = self.compute_amethysts_orders(state, product, acc_bid[product], acc_ask[product])
-                result[product] = orders
+            # if product == "AMETHYSTS":
+            #     orders, current_amethysts_position = self.compute_amethysts_orders(state, product, acc_bid[product], acc_ask[product])
+            #     result[product] = orders
             
-            if product == "STARFRUIT":
-                orders, current_starfruit_position = self.compute_starfruit_orders(state, product, acc_bid[product], acc_ask[product], current_starfruit_position)
-                result[product] = orders
+            # if product == "STARFRUIT":
+            #     orders, current_starfruit_position = self.compute_starfruit_orders(state, product, acc_bid[product], acc_ask[product], current_starfruit_position)
+            #     result[product] = orders
             
             if product == "ORCHIDS":
-                self.compute_orchid_orders(state, product, current_orchid_position)
+                orders, conversions = self.compute_orchid_orders(state, product, current_orchid_position)
                 result[product] = orders
 
-        conversions = 1
         traderData = state.traderData
         return result, conversions, traderData

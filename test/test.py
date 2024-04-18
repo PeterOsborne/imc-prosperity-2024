@@ -13,7 +13,6 @@ def main(products, position_limit, traderData):
     performance = []
     for product in products:
         position[product] = 0
-
     round_dir = "round-" + input("which round? ")
     file_path = os.path.join('..', round_dir, 'data')
     price_files = [file for file in os.listdir(file_path) if file.startswith('prices')]
@@ -57,6 +56,11 @@ def create_round(data, dataTrades, position, products, timestamp, conversions, t
     new_data = data[data['timestamp'] == timestamp]
     new_trades = dataTrades[dataTrades['timestamp'] == timestamp]
     product = new_trades['symbol']
+    # if timestamp == 100:
+        # print(" ")
+        # print("===========================================")
+        # print(new_trades)
+        # print("===========================================")
     listings = {}
     order_depths = {}
     own_trades = {}
