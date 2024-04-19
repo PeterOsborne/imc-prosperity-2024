@@ -254,9 +254,6 @@ class Trader:
             print("===============================")
 
     def run(self, state: TradingState):
-        # a = str(state.traderData)
-        # assert False, a
-
         if state.traderData == "":
             state.traderData = {}
         elif type(state.traderData) == str:
@@ -299,5 +296,5 @@ class Trader:
 
         conversions = 1
 
-        traderData = state.traderData
+        traderData = jsonpickle.encode(state.traderData)
         return result, conversions, traderData
