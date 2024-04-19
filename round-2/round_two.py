@@ -2,6 +2,7 @@ from datamodel import OrderDepth, UserId, TradingState, Order
 from typing import List
 import string
 import numpy as np
+import math
 
 class Trader:
     POSITION_LIMIT = {'AMETHYSTS': 20, 'STARFRUIT': 20}
@@ -138,40 +139,60 @@ class Trader:
         obuy = self.list_to_dict(sorted(order_depth.buy_orders.items(), reverse=True))
         
         first_osell = list(osell.items())[0]
-        last_osell = list(osell.items())[1]
+        last_osell = list(osell.items())[-1]
         first_obuy = list(obuy.items())[0]
-        last_obuy = list(obuy.items())[1]
+        last_obuy = list(obuy.items())[-1]
         
         first_price_osell, first_position_osell = first_osell
         last_price_osell, last_position_osell = last_osell
         first_price_obuy, first_position_obuy = first_obuy
         last_price_obuy, last_position_obuy = last_obuy
         
-        vol = min(-1 * first_position_osell, -1 * last_position_osell)
-        orders.append(Order(product, first_price_osell, 3))
-        orders.append(Order(product, first_price_osell + 15, -3))
-        print(first_price_osell, last_price_osell)
+        # vol = min(-1 * first_position_osell, -1 * last_position_osell, position_limit + position)
+        # if vol + position < position_limit:
+        #     orders.append(Order(product, first_price_osell, vol))
+        #     orders.append(Order(product, last_price_osell, -1*vol))
+        #     print(first_price_osell, last_price_osell)
+        #     print(f'Bought orchids for {first_price_osell} and sold {-1 * vol} for {last_price_osell}')
         
-        print(f'Bought orchids for {first_price_osell} and sold for {first_price_osell + 3}')
+        # vol = max(-1 * first_position_obuy, -1 * last_position_obuy, -1 * position_limit - position)
+        # if position + vol > (-1 * position_limit):
+        #     print(first_price_obuy, last_price_obuy)
+        #     orders.append(Order(product, first_price_obuy, vol))
+        #     orders.append(Order(product, last_price_obuy, -1*vol))
+        #     print(f'Sold orchids for {first_price_obuy} and bought {-1 * vol} for {last_position_obuy}')
         
-        vol = max(-1 * first_position_obuy, -1 * last_position_obuy)
-        print(first_price_obuy, last_price_obuy)
-        orders.append(Order(product, first_price_obuy, -3))
-        orders.append(Order(product, first_price_obuy - 15, 3))
-        
-        print(f'Sold orchids for {first_price_obuy} and bought for {first_price_obuy - 3}')
-
-
 
         conversion_observation = state.observations.conversionObservations.get(product, 0)
-        plain_value_observation = state.observations.plainValueObservations.get(product, 0)
         print(conversion_observation.bidPrice, conversion_observation.askPrice)
-        print(plain_value_observation)
         conversion_bid = conversion_observation.bidPrice
         conversion_ask = conversion_observation.askPrice
         conversion_import_tariff = conversion_observation.importTariff
         conversion_export_tariff = conversion_observation.exportTariff
+        conversion_transport_fees = conversion_observation.transportFees
         conversions = 0
+        average_price = round((conversion_bid + conversion_ask)/2)
+        
+        print(conversion_import_tariff, conversion_export_tariff, conversion_transport_fees)
+        if position < 0:
+            vol = min(first_position_obuy, abs(position))
+            conversions = vol
+            orders.append(Order(product, math.ceil(first_price_obuy + conversion_transport_fees + 2), -1 * vol))
+            print("BUY CONVERSION")
+        else:
+            # if first_price_osell - average_price > average_price - first_price_obuy: #if it is better to sell because people are buying at higher prices
+            orders.append(Order(product, math.ceil(first_price_obuy + conversion_transport_fees + 1), -1 * first_position_obuy))
+            print("ORDER DIDN'T GO THROUGH")
+            # else:
+            #     orders.append(Order(product, math.ceil(first_price_osell + conversion_transport_fees), -1 * first_position_osell))
+        # elif position > 0:
+        #     vol = min(abs(first_position_osell), position)
+        #     conversions = -1 * vol
+        #     orders.append(Order(product, math.ceil(first_price_osell - conversion_transport_fees - conversion_export_tariff), vol))
+        #     print("SELL CONVERSION")
+
+        
+        print(f'buy for less than {conversion_bid - abs(conversion_import_tariff) - abs(conversion_transport_fees)}')
         
         if state.timestamp == 99900:
             print(f'my position is {position}, converting {-1 * position}')
