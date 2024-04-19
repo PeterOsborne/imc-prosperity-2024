@@ -137,15 +137,68 @@ class Trader:
 
         state.traderData[f"{product}_history"] = data.reset_index().to_json()
 
-        import os
-        file_path = f'testdata/{product}_history.txt'
+        # import os
+        # file_path = f'testdata/{product}_history.txt'
 
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        # os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-        with open(file_path, 'w+') as f:
-            f.write(data.reset_index().to_json())
+        # with open(file_path, 'w+') as f:
+        #     f.write(data.reset_index().to_json())
 
         return data
+
+    def gift_basket(self, state, gift, choc, berries, roses):
+        items = ("GIFT_BASKET", "CHOCOLATE", "STRAWBERRIES", "ROSES")
+
+        window1, window2 = (100, 5)
+        orders: List[Order] = []
+
+        order_depths: List[OrderDepth] = []
+        for item in items:
+            order_depths.append(state.order_depths[item])
+
+        gift, summed = gift, choc*6 + roses*3 + berries
+
+        if len(gift) < window1 or len(summed) < window1:
+            print(len(gift), len(summed), "not enough data yet")
+            return orders
+
+        best_bid_gift, best_bid_amount_gift = list(
+            order_depths[0].buy_orders.items())[0]
+        best_ask_gift, best_ask_amount_gift = list(
+            order_depths[0].sell_orders.items())[0]
+
+        gift = gift.groupby('timestamp').agg("mean")
+        summed = summed.groupby('timestamp').agg("mean")
+
+        ratios = gift/summed
+        ma1 = ratios.rolling(window=window1, center=False).mean()
+        ma2 = ratios.rolling(window=window2, center=False).mean()
+        std = ratios.rolling(window=window2, center=False).std()
+        zscore = (ma1 - ma2)/std
+
+        if zscore.iloc[-1].item() < -1:
+
+            orders.append(
+                Order(items[0], best_bid_gift, max(-10, -best_bid_amount_gift)))
+
+        # Buy long if the z-score is < -1
+        elif zscore.iloc[-1].item() > 1:
+            orders.append(
+                Order(items[0], best_ask_gift, min(10, -best_ask_amount_gift)))
+
+        # Clear positions if the z-score between -.5 and .5
+        elif abs(zscore.iloc[-1].item()) < 0.75:
+            p1_pos = state.position.get(items[0], 0)
+
+            for prod, pos, ask_bid in [(items[0], p1_pos, (best_ask_gift, best_bid_gift))]:
+                if (pos < 0):
+                    orders.append(Order(prod, ask_bid[0], -pos))
+                elif (pos > 0):
+                    orders.append(Order(prod, ask_bid[1], -pos))
+
+        print(orders)
+        return orders
 
     def pairwise(self, state, product1, product2):
         window1, window2 = (100, 5)
@@ -310,9 +363,16 @@ class Trader:
                 result[product] = orders
 
             if (product == "GIFT_BASKET" or product == "CHOCOLATE") and (state.timestamp % 500 == 0):
-                orders = self.pairwise(state,  "CHOCOLATE", "GIFT_BASKET")
+                # orders = self.pairwise(state,  "CHOCOLATE", "GIFT_BASKET")
                 # orders += self.pairwise(state,  "STRAWBERRIES", "GIFT_BASKET")
                 # orders += self.pairwise(state,  "ROSES", "GIFT_BASKET")
+
+                items = ("GIFT_BASKET", "CHOCOLATE", "STRAWBERRIES", "ROSES")
+                dfs = []
+                for item in items:
+                    dfs.append(self.get_recordProduct(state, item))
+
+                orders = self.gift_basket(state, *dfs)
 
                 for order in orders:
                     result[order.symbol] = [order]
