@@ -2,6 +2,7 @@ from datamodel import OrderDepth, UserId, TradingState, Order
 from typing import List
 import string
 import numpy as np
+import jsonpickle
 import pandas as pd
 
 
@@ -110,7 +111,7 @@ class Trader:
 
     def get_recordProduct(self, state, product):
         order_depth_p = state.order_depths[product]
-        state.traderData.get(f"{product}_history", None)
+        # state.traderData.get(f"{product}_history", None)
 
         best_sell = min(order_depth_p.sell_orders.keys())
         best_buy = max(order_depth_p.buy_orders.keys())
@@ -118,17 +119,20 @@ class Trader:
         mid_price = (best_sell + best_buy)/2
 
         new_row = pd.DataFrame(
-            {'timestamp': state.timestamp, 'mid_price': mid_price}).set_index('timeframe')
+            {'timestamp': [state.timestamp], 'mid_price': [mid_price]}).set_index('timestamp')
 
         data = state.traderData.get(f"{product}_history", None)
 
         if data != None:
-            if state.timestamp in list(data['timestamp']):
+            data = pd.DataFrame(pd.read_json(data).set_index("timestamp"))
+            if state.timestamp in list(data.index):
                 return data
-
             data = pd.concat([data, new_row])
+        else:
+            data = new_row
 
-        state.traderData["{product}_history"] = data
+        state.traderData[f"{product}_history"] = \
+            data.reset_index().to_json()
 
         return data
 
@@ -141,8 +145,8 @@ class Trader:
         prices_1 = self.get_recordProduct(state, product1)
         prices_2 = self.get_recordProduct(state, product2)
 
-        if prices_1 == None or prices_2 == None:
-            return
+        # if prices_1 == None or prices_2 == None:
+        #     return
 
         if len(prices_1) < window1 or len(prices_2) < window1:
             return
@@ -251,10 +255,16 @@ class Trader:
             print("===============================")
 
     def run(self, state: TradingState):
-        if state.traderData == None:
-            state.traderData = {}
+        # a = str(state.traderData)
+        # assert False, a
 
-        print(state.traderData)
+        print("Current Trader Data: ", state.traderData)
+        print(f"\n\n {type(state.traderData)}\n\n")
+
+        if state.traderData == "":
+            state.traderData = {}
+        elif type(state.traderData) == str:
+            state.traderData = jsonpickle.decode(state.traderData)
 
         result = {}
 
@@ -289,7 +299,7 @@ class Trader:
                 result[product] = orders
 
             if product == "GIFT_BASKET" or product == "CHOCOLATE":
-                orders, = self.pairwise(state, "GIFT_BASKET", "CHOCOLATE")
+                orders = self.pairwise(state, "GIFT_BASKET", "CHOCOLATE")
 
         conversions = 1
 
