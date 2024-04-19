@@ -124,7 +124,8 @@ class Trader:
         data = state.traderData.get(f"{product}_history", None)
 
         if data != None:
-            data = pd.DataFrame(pd.read_json(data).set_index("timestamp"))
+            data = pd.DataFrame(pd.read_json(
+                data).set_index("timestamp")).tail(300)
             if state.timestamp in list(data.index):
                 return data
             data = pd.concat([data, new_row])
@@ -145,10 +146,8 @@ class Trader:
         prices_1 = self.get_recordProduct(state, product1)
         prices_2 = self.get_recordProduct(state, product2)
 
-        # if prices_1 == None or prices_2 == None:
-        #     return
-
         if len(prices_1) < window1 or len(prices_2) < window1:
+            print("EXITED")
             return
 
         best_bid_p1, best_bid_amount_p1 = list(
@@ -257,9 +256,6 @@ class Trader:
     def run(self, state: TradingState):
         # a = str(state.traderData)
         # assert False, a
-
-        print("Current Trader Data: ", state.traderData)
-        print(f"\n\n {type(state.traderData)}\n\n")
 
         if state.traderData == "":
             state.traderData = {}
