@@ -5,8 +5,8 @@ import numpy as np
 import jsonpickle
 import pandas as pd
 
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
+# import warnings
+# warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class Trader:
@@ -47,7 +47,8 @@ class Trader:
         mx_with_buy = -1
 
         if position > 20 or position < -20:
-            print("BUST")
+            pass
+            # print("BUST")
 
         for ask, vol in osell.items():
             if ((ask < acc_bid) or ((position < 0) and (ask == acc_bid))) and cpos < self.POSITION_LIMIT['AMETHYSTS']:
@@ -108,7 +109,7 @@ class Trader:
             num = max(-40, -self.POSITION_LIMIT['AMETHYSTS']-cpos)
             orders.append(Order(product, sell_pr, num))
             cpos += num
-            print('yo')
+            # print('yo')
 
         return orders, cpos
 
@@ -128,7 +129,7 @@ class Trader:
 
         if data != None:
             data = pd.DataFrame(pd.read_json(
-                data).set_index("timestamp")).tail(150)
+                data).set_index("timestamp")).tail(205)
             if state.timestamp in list(data.index):
                 return data
             data = pd.concat([data, new_row])
@@ -150,7 +151,7 @@ class Trader:
     def gift_basket(self, state, gift, choc, berries, roses):
         items = ("GIFT_BASKET", "CHOCOLATE", "STRAWBERRIES", "ROSES")
 
-        window1, window2 = (100, 5)
+        window1, window2 = (200, 5)
         orders: List[Order] = []
 
         order_depths: List[OrderDepth] = []
@@ -188,7 +189,7 @@ class Trader:
                 Order(items[0], best_ask_gift, min(10, -best_ask_amount_gift)))
 
         # Clear positions if the z-score between -.5 and .5
-        elif abs(zscore.iloc[-1].item()) < 0.75:
+        elif abs(zscore.iloc[-1].item()) < 0.5:
             p1_pos = state.position.get(items[0], 0)
 
             for prod, pos, ask_bid in [(items[0], p1_pos, (best_ask_gift, best_bid_gift))]:
@@ -197,11 +198,11 @@ class Trader:
                 elif (pos > 0):
                     orders.append(Order(prod, ask_bid[1], -pos))
 
-        print(orders)
+        # print(orders)
         return orders
 
     def pairwise(self, state, product1, product2):
-        window1, window2 = (100, 5)
+        window1, window2 = (200, 5)
 
         orders: List[Order] = []
 
@@ -212,7 +213,7 @@ class Trader:
         prices_2 = self.get_recordProduct(state, product2)
 
         if len(prices_1) < window1 or len(prices_2) < window1:
-            print(len(prices_1), len(prices_2), "EXITED")
+            # print(len(prices_1), len(prices_2), "EXITED")
             return orders
 
         best_bid_p1, best_bid_amount_p1 = list(
@@ -243,11 +244,6 @@ class Trader:
 
             orders.append(Order(product2, best_ask_p2,
                           min(10, -best_ask_amount_p2)))
-
-            # money += S1.iloc[-1].item() - S2.iloc[-1].item() * ratios.iloc[-1].item()
-            # countS1 -= 1
-            # countS2 += ratios.iloc[i].item()
-
         # Buy long if the z-score is < -1
         elif zscore.iloc[-1].item() > 1:
 
@@ -256,12 +252,6 @@ class Trader:
 
             orders.append(Order(product1, best_bid_p1,
                           max(-10, -best_bid_amount_p1)))
-
-            # money -= S1.iloc[-1].item() - S2.iloc[-1].item() * \
-            #     ratios.iloc[-1].item()
-            # countS1 += 1
-            # countS2 -= ratios.iloc[-1].item()
-            # print('Buying Ratio %s %s %s %s'%(money,ratios.iloc[-1].item(), countS1,countS2))
 
         # Clear positions if the z-score between -.5 and .5
         elif abs(zscore.iloc[-1].item()) < 0.75:
@@ -274,11 +264,6 @@ class Trader:
                 elif (pos > 0):
                     orders.append(Order(prod, ask_bid[1], -pos))
 
-            # money += S1.iloc[-1].item() * countS1 + \
-            #     S2.iloc[-1].item() * countS2
-            # countS1 = 0
-            # countS2 = 0
-
         print(orders)
         return orders
 
@@ -290,39 +275,39 @@ class Trader:
             last_5_prices = list(order_depth.sell_orders.items())[:5]
             past_prices = [float(price) for price, _ in last_5_prices]
             average_price = sum(past_prices) / len(past_prices)
-            # print("The average price is ", average_price)
+            print("The average price is ", average_price)
             best_bid, best_bid_amount = list(order_depth.buy_orders.items())[0]
             best_ask, best_ask_amount = list(
                 order_depth.sell_orders.items())[0]
             if best_bid < average_price - 2:
                 if current_starfruit_position + best_bid_amount <= position_limit:
-                    print("BUYING STARFRUIT")
+                    # print("BUYING STARFRUIT")
                     orders.append(Order(product, best_bid, -best_bid_amount))
                     current_starfruit_position += best_bid_amount
             if best_ask > average_price + 2:
                 if current_starfruit_position - best_ask_amount >= -position_limit:
-                    print("SELLING STARFRUIT")
+                    # print("SELLING STARFRUIT")
                     orders.append(Order(product, best_ask, -best_ask_amount))
                     current_starfruit_position -= best_ask_amount
         return orders, current_starfruit_position
 
-    def compute_orchid_orders(self, state, product, current_orchid_position):
-        position_limit = 100
-        order_depth: OrderDepth = state.order_depths[product]
-        orders: List[Order] = []
+    # def compute_orchid_orders(self, state, product, current_orchid_position):
+    #     position_limit = 100
+    #     order_depth: OrderDepth = state.order_depths[product]
+    #     orders: List[Order] = []
 
-        conversion_observation = state.observations.conversionObservations.get(
-            product, 0)
-        plain_value_observation = state.observations.plainValueObservations.get(
-            product, 0)
-        amethysts = state.observations.plainValueObservations.get(
-            "AMETHYSTS", 0)
+    #     conversion_observation = state.observations.conversionObservations.get(
+    #         product, 0)
+    #     plain_value_observation = state.observations.plainValueObservations.get(
+    #         product, 0)
+    #     amethysts = state.observations.plainValueObservations.get(
+    #         "AMETHYSTS", 0)
 
-        if state.timestamp % 10000 == 0:
-            print(str(conversion_observation.bidPrice) + ' | ')
-            print(str(plain_value_observation) + ' | ')
-            print(str(amethysts.bidPrice) + ' | ')
-            print("===============================")
+        # if state.timestamp % 10000 == 0:
+        # print(str(conversion_observation.bidPrice) + ' | ')
+        # print(str(plain_value_observation) + ' | ')
+        # print(str(amethysts.bidPrice) + ' | ')
+        # print("===============================")
 
     def run(self, state: TradingState):
         if state.traderData == "":
@@ -362,10 +347,10 @@ class Trader:
                     state, product, current_orchid_position)
                 result[product] = orders
 
-            if (product == "GIFT_BASKET" or product == "CHOCOLATE") and (state.timestamp % 500 == 0):
-                # orders = self.pairwise(state,  "CHOCOLATE", "GIFT_BASKET")
-                # orders += self.pairwise(state,  "STRAWBERRIES", "GIFT_BASKET")
-                # orders += self.pairwise(state,  "ROSES", "GIFT_BASKET")
+            if (product == "GIFT_BASKET" or product == "CHOCOLATE") and (state.timestamp % 400 == 0):
+                orders = self.pairwise(state,  "CHOCOLATE", "GIFT_BASKET")
+                orders += self.pairwise(state,  "STRAWBERRIES", "GIFT_BASKET")
+                orders += self.pairwise(state,  "ROSES", "GIFT_BASKET")
 
                 items = ("GIFT_BASKET", "CHOCOLATE", "STRAWBERRIES", "ROSES")
                 dfs = []
@@ -376,7 +361,6 @@ class Trader:
 
                 for order in orders:
                     result[order.symbol] = [order]
-                # result[product] = orders
 
         conversions = 1
 
