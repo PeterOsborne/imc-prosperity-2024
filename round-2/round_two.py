@@ -143,10 +143,17 @@ class Trader:
         first_obuy = list(obuy.items())[0]
         last_obuy = list(obuy.items())[-1]
         
+        sell_vol, best_sell_pr = self.values_extract(osell)
+        buy_vol, best_buy_pr = self.values_extract(obuy, 1)
+        
+        
         first_price_osell, first_position_osell = first_osell
         last_price_osell, last_position_osell = last_osell
         first_price_obuy, first_position_obuy = first_obuy
         last_price_obuy, last_position_obuy = last_obuy
+        
+        print(f'{first_obuy} should equal {best_buy_pr}')
+        print(f'{first_osell} should equal {best_sell_pr}')
         
         # vol = min(-1 * first_position_osell, -1 * last_position_osell, position_limit + position)
         # if vol + position < position_limit:
@@ -172,25 +179,20 @@ class Trader:
         conversion_transport_fees = conversion_observation.transportFees
         conversions = 0
         average_price = round((conversion_bid + conversion_ask)/2)
+
+        profit = abs(conversion_import_tariff)
         
         print(conversion_import_tariff, conversion_export_tariff, conversion_transport_fees)
+        print(position)
         if position < 0:
-            vol = min(first_position_obuy, abs(position))
-            conversions = vol
-            orders.append(Order(product, math.ceil(first_price_obuy + conversion_transport_fees + 2), -1 * vol))
+            conversions = abs(position)
+            orders.append(Order(product, math.ceil(conversion_ask - 1), -50))
+            print(conversions)
             print("BUY CONVERSION")
         else:
             # if first_price_osell - average_price > average_price - first_price_obuy: #if it is better to sell because people are buying at higher prices
-            orders.append(Order(product, math.ceil(first_price_obuy + conversion_transport_fees + 1), -1 * first_position_obuy))
+            orders.append(Order(product, math.ceil(conversion_ask - 1), -50))
             print("ORDER DIDN'T GO THROUGH")
-            # else:
-            #     orders.append(Order(product, math.ceil(first_price_osell + conversion_transport_fees), -1 * first_position_osell))
-        # elif position > 0:
-        #     vol = min(abs(first_position_osell), position)
-        #     conversions = -1 * vol
-        #     orders.append(Order(product, math.ceil(first_price_osell - conversion_transport_fees - conversion_export_tariff), vol))
-        #     print("SELL CONVERSION")
-
         
         print(f'buy for less than {conversion_bid - abs(conversion_import_tariff) - abs(conversion_transport_fees)}')
         
@@ -212,9 +214,9 @@ class Trader:
         conversions = 0
         
         for product in state.order_depths:
-            # if product == "AMETHYSTS":
-            #     orders, current_amethysts_position = self.compute_amethysts_orders(state, product, acc_bid[product], acc_ask[product])
-            #     result[product] = orders
+            if product == "AMETHYSTS":
+                orders, current_amethysts_position = self.compute_amethysts_orders(state, product, acc_bid[product], acc_ask[product])
+                result[product] = orders
             
             # if product == "STARFRUIT":
             #     orders, current_starfruit_position = self.compute_starfruit_orders(state, product, acc_bid[product], acc_ask[product], current_starfruit_position)
