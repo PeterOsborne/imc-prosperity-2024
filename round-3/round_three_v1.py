@@ -5,6 +5,9 @@ import numpy as np
 import jsonpickle
 import pandas as pd
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 
 class Trader:
     POSITION_LIMIT = {'AMETHYSTS': 20, 'STARFRUIT': 20}
@@ -125,20 +128,27 @@ class Trader:
 
         if data != None:
             data = pd.DataFrame(pd.read_json(
-                data).set_index("timestamp")).tail(300)
+                data).set_index("timestamp")).tail(150)
             if state.timestamp in list(data.index):
                 return data
             data = pd.concat([data, new_row])
         else:
             data = new_row
 
-        state.traderData[f"{product}_history"] = \
-            data.reset_index().to_json()
+        state.traderData[f"{product}_history"] = data.reset_index().to_json()
+
+        import os
+        file_path = f'testdata/{product}_history.txt'
+
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        with open(file_path, 'w+') as f:
+            f.write(data.reset_index().to_json())
 
         return data
 
     def pairwise(self, state, product1, product2):
-        window1, window2 = (200, 2)
+        window1, window2 = (100, 5)
 
         orders: List[Order] = []
 
@@ -149,7 +159,7 @@ class Trader:
         prices_2 = self.get_recordProduct(state, product2)
 
         if len(prices_1) < window1 or len(prices_2) < window1:
-            print("EXITED")
+            print(len(prices_1), len(prices_2), "EXITED")
             return orders
 
         best_bid_p1, best_bid_amount_p1 = list(
@@ -174,8 +184,12 @@ class Trader:
         # Sell short if the z-score is > 1
         if zscore.iloc[-1].item() < -1:
             # buy p2 and sell p1
-            orders.append(Order(product2, best_ask_p2, -best_ask_amount_p2))
-            orders.append(Order(product1, best_bid_p1, -best_bid_amount_p1))
+
+            orders.append(Order(product1, best_ask_p1,
+                          min(10, -best_ask_amount_p1)))
+
+            orders.append(Order(product2, best_ask_p2,
+                          min(10, -best_ask_amount_p2)))
 
             # money += S1.iloc[-1].item() - S2.iloc[-1].item() * ratios.iloc[-1].item()
             # countS1 -= 1
@@ -183,8 +197,12 @@ class Trader:
 
         # Buy long if the z-score is < -1
         elif zscore.iloc[-1].item() > 1:
-            orders.append(Order(product1, best_ask_p1, -best_ask_amount_p1))
-            orders.append(Order(product2, best_bid_p2, -best_bid_amount_p2))
+
+            orders.append(Order(product2, best_bid_p2,
+                          max(-10, -best_bid_amount_p2)))
+
+            orders.append(Order(product1, best_bid_p1,
+                          max(-10, -best_bid_amount_p1)))
 
             # money -= S1.iloc[-1].item() - S2.iloc[-1].item() * \
             #     ratios.iloc[-1].item()
@@ -291,8 +309,10 @@ class Trader:
                     state, product, current_orchid_position)
                 result[product] = orders
 
-            if (product == "GIFT_BASKET" or product == "CHOCOLATE") and state.timestamp % 500 == 0:
-                orders = self.pairwise(state, "GIFT_BASKET", "CHOCOLATE")
+            if (product == "GIFT_BASKET" or product == "CHOCOLATE") and (state.timestamp % 500 == 0):
+                orders = self.pairwise(state,  "CHOCOLATE", "GIFT_BASKET")
+                # orders += self.pairwise(state,  "STRAWBERRIES", "GIFT_BASKET")
+                # orders += self.pairwise(state,  "ROSES", "GIFT_BASKET")
 
                 for order in orders:
                     result[order.symbol] = [order]
