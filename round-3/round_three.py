@@ -233,7 +233,8 @@ class Trader:
     def run(self, state: TradingState):
         # Params
         self.save_length = 70
-        self.windows = (60, 5)
+        self.windows = (60, 3)
+        self.pair_freq = 5  # once every
 
         if state.traderData == "":
             state.traderData = {}
@@ -273,7 +274,7 @@ class Trader:
             #         state, product, current_orchid_position)
             #     result[product] = orders
 
-            if (product in items) and (state.timestamp % 500 == 0):
+            if (product in items) and (state.timestamp % (100*self.pair_freq) == 0):
 
                 dfs = []
                 for item in items:
