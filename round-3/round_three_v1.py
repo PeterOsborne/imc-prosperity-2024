@@ -140,6 +140,8 @@ class Trader:
     def pairwise(self, state, product1, product2):
         window1, window2 = (200, 2)
 
+        orders: List[Order] = []
+
         order_depth_p1: OrderDepth = state.order_depths[product1]
         order_depth_p2: OrderDepth = state.order_depths[product2]
 
@@ -148,7 +150,7 @@ class Trader:
 
         if len(prices_1) < window1 or len(prices_2) < window1:
             print("EXITED")
-            return
+            return orders
 
         best_bid_p1, best_bid_amount_p1 = list(
             order_depth_p1.buy_orders.items())[0]
@@ -168,8 +170,6 @@ class Trader:
         ma2 = ratios.rolling(window=window2, center=False).mean()
         std = ratios.rolling(window=window2, center=False).std()
         zscore = (ma1 - ma2)/std
-
-        orders: List[Order] = []
 
         # Sell short if the z-score is > 1
         if zscore.iloc[-1].item() < -1:
@@ -291,8 +291,12 @@ class Trader:
                     state, product, current_orchid_position)
                 result[product] = orders
 
-            if product == "GIFT_BASKET" or product == "CHOCOLATE":
+            if (product == "GIFT_BASKET" or product == "CHOCOLATE") and state.timestamp % 500 == 0:
                 orders = self.pairwise(state, "GIFT_BASKET", "CHOCOLATE")
+
+                for order in orders:
+                    result[order.symbol] = [order]
+                # result[product] = orders
 
         conversions = 1
 
